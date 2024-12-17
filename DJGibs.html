@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJ GIBS - Music Loop</title>
+    <link rel="icon" href="./icon.webp" type="image/x-icon">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a1a1a, #4b0082);
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .container {
+            text-align: center;
+            z-index: 10;
+        }
+
+        .title {
+            font-size: 4em;
+            font-weight: bold;
+            color: #FFD700;
+            text-shadow: 0px 0px 10px #FFFFFF, 0px 0px 20px #FFD700;
+            position: relative;
+        }
+
+        .subtitle {
+            font-size: 1.5em;
+            margin-top: 10px;
+            position: relative;
+        }
+
+        audio {
+            margin-top: 20px;
+            outline: none;
+            width: 80%;
+            height: 50px;
+            background: linear-gradient(90deg, #ff4500, #ffd700, #00ff00);
+            border: 2px solid #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 15px #ffd700, 0 0 25px #ff4500;
+            animation: pulseBar 2s infinite;
+        }
+
+        @keyframes pulseBar {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 10px #ffd700, 0 0 20px #ff4500;
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 20px #ff4500, 0 0 30px #ffd700;
+            }
+        }
+
+        .raining-note {
+            position: absolute;
+            font-size: 2em;
+            color: hsl(0, 100%, 70%);
+            animation: fall linear infinite;
+            z-index: 5;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .particle {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            animation: fade 2s linear forwards;
+        }
+
+        @keyframes fade {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        .flashing-border {
+            position: absolute;
+            border: 10px solid transparent;
+            width: 100vw;
+            height: 100vh;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
+        @keyframes border-flash {
+            0% {
+                border-color: hsl(0, 100%, 50%);
+            }
+            50% {
+                border-color: hsl(120, 100%, 50%);
+            }
+            100% {
+                border-color: hsl(240, 100%, 50%);
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="flashing-border" id="border"></div>
+    <div class="container">
+        <div class="title" id="title">DJ GIBS</div>
+        <div class="subtitle" id="subtitle">Feel the beat on loop!</div>
+        <audio id="song" autoplay loop controls>
+            <source src="./gabay-techno-remix.mp3" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+    <script>
+        const audio = document.getElementById('song');
+        const title = document.getElementById('title');
+        const subtitle = document.getElementById('subtitle');
+        const border = document.getElementById('border');
+
+        // Visualizer setup
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaElementSource(audio);
+
+        source.connect(analyser);
+        analyser.connect(audioContext.destination);
+        analyser.fftSize = 256;
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        // Rain Notes
+        function createRainNote() {
+            const note = document.createElement('div');
+            note.classList.add('raining-note');
+            note.style.left = `${Math.random() * 100}vw`;
+            note.style.animationDuration = `${Math.random() * 3 + 2}s`;
+            note.style.color = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            note.innerText = '♪';
+            document.body.appendChild(note);
+
+            setTimeout(() => {
+                note.remove();
+            }, 5000);
+        }
+
+        // Particle effect for notes
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+            particle.style.left = `${x}px`;
+            particle.style.top = `${y}px`;
+            particle.style.background = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            document.body.appendChild(particle);
+
+            setTimeout(() => {
+                particle.remove();
+            }, 2000);
+        }
+
+        // Animate Text and Border
+        function animateVisuals() {
+            analyser.getByteFrequencyData(dataArray);
+            const avgAmplitude = dataArray.reduce((sum, val) => sum + val, 0) / dataArray.length;
+
+            // Scale title and subtitle based on beat
+            const scale = 1 + avgAmplitude / 200;
+            title.style.transform = `scale(${scale})`;
+            subtitle.style.transform = `scale(${scale})`;
+
+            // Flash border
+            border.style.animation = `border-flash ${1 + avgAmplitude / 300}s infinite linear`;
+
+            // Rain intensity increases with beat
+            if (Math.random() < avgAmplitude / 300) {
+                createRainNote();
+                createParticle(Math.random() * window.innerWidth, Math.random() * window.innerHeight);
+            }
+
+            requestAnimationFrame(animateVisuals);
+        }
+
+        animateVisuals();
+
+        // Autoplay check
+        window.onload = () => {
+            audio.play().catch(() => {
+                console.log('Autoplay blocked.');
+            });
+        };
+    </script>
+</body>
+</html>
